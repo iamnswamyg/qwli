@@ -105,5 +105,5 @@ zipp==1.0.0
 Flask>=2.0
 qiskit
 numpy
-
+qiskit-aqua[cvx]
 

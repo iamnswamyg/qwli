@@ -110,7 +110,7 @@ Restart=always
 WantedBy=multi-user.target" > $REPO_NAME.service
 
 # Create .env files
-touch .env.local .env.test .env.prod
+touch .env.local .env.test .env
 
 # Update .gitignore to exclude env files
 echo "
@@ -216,7 +216,56 @@ deploy:
     - echo \"This could be a script to update a server or a service\"
 " > .gitlab-ci.yml
 
-# Git add and commit the new GitLab CI/CD setup
-git add .gitlab-ci.yml
-git commit -m "Add Qiskit integration and update Flask API"
+# Create .env file for storing secrets and configurations
+echo "SECRET_KEY=your_secret_key_here" > .env
+echo "MONGO_INITDB_ROOT_USERNAME=mongoadmin" >> .env
+echo "MONGO_INITDB_ROOT_PASSWORD=mongopassword" >> .env
+
+# Update Docker Compose to use the .env file
+echo "version: '3.8'
+services:
+  webapp:
+    build: .
+    container_name: myci-cli-web
+    ports:
+      - \"5000:5000\"
+    environment:
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo
+    container_name: myci-cli-mongo
+    ports:
+      - \"27017:27017\"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=\${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=\${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local" > docker-compose.yml
+
+# Add .env files to .gitignore to avoid uploading sensitive information
+echo "
+# Environment secrets
+.env*" >> .gitignore
+
+# Commit changes to Git
+git add .env .gitignore docker-compose.yml
+git commit -m "Setup environment variables and update Docker compose"
 git push
+
+
+

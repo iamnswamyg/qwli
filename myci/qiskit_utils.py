@@ -12,3 +12,12 @@ def run_simulation(circuit, shots=1024):
     job = execute(circuit, simulator, shots=shots)
     result = job.result()
     return result.get_counts(circuit)
+
+def generate_quantum_random_number(bits=8):
+    circuit = QuantumCircuit(bits, bits)
+    circuit.h(range(bits))  # Apply Hadamard gate to all qubits
+    circuit.measure(range(bits), range(bits))
+    simulator = Aer.get_backend('qasm_simulator')
+    result = execute(circuit, simulator, shots=1).result()
+    counts = result.get_counts()
+    return list(counts.keys())[0]  # Return the measured bits as a string
