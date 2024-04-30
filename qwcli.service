@@ -1,0 +1,12 @@
+[Unit]
+Description=My CI/CD CLI Tool API
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/usr/src/app
+ExecStart=/usr/bin/python3 /usr/src/app/myci/api.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

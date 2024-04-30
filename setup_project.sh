@@ -46,21 +46,46 @@ touch $REPO_NAME/__init__.py
 touch $REPO_NAME/cli.py
 
 # Write basic CLI tool example in cli.py
-echo "import click
+echo echo "from flask import Flask, jsonify
 
-@click.command()
-def main():
-    click.echo('Hello, this is my CI/CD CLI tool!')
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return jsonify({'message': 'Welcome to the CI/CD CLI tool API!'})
 
 if __name__ == '__main__':
-    main()" > myci/cli.py
+    app.run(debug=True)"> $REPO_NAME/cli.py
 
 # Create Dockerfile
 echo "FROM python:3.8-slim
 WORKDIR /usr/src/app
 COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
-CMD ['python', 'myci/cli.py']" > Dockerfile
+CMD ['python', '$REPO_NAME/cli.py']" > Dockerfile
+
+# Create systemd service file for system service
+echo "[Unit]
+Description=My CI/CD CLI Tool API
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/usr/src/app
+ExecStart=/usr/bin/python3 /usr/src/app/$REPO_NAME/api.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target" > $REPO_NAME.service
+
+# Create .env files
+touch .env.local .env.test .env.prod
+
+# Update .gitignore to exclude env files
+echo "
+# Environment secrets
+.env*
+!.env.example" >> .gitignore
 
 # Create .dockerignore
 echo "venv/
@@ -85,3 +110,82 @@ git commit -m "Initial project setup"
 git push -u origin main
 
 echo "Project setup is complete."
+
+# Create GitHub Actions directory and workflow file
+mkdir -p .github/workflows
+echo "name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Build and Publish Docker Image
+      run: |
+        docker build -t \${{ secrets.DOCKER_USERNAME }}/myci-cli:\${{ github.sha }} .
+        echo \"\${{ secrets.DOCKER_PASSWORD }}\" | docker login -u \"\${{ secrets.DOCKER_USERNAME }}\" --password-stdin
+        docker push \${{ secrets.DOCKER_USERNAME }}/myci-cli:\${{ github.sha }}
+
+    - name: Push to PyPI
+      run: |
+        docker run --rm \${{ secrets.DOCKER_USERNAME }}/myci-cli:\${{ github.sha }} python setup.py sdist bdist_wheel
+        twine upload dist/* --username \${{ secrets.PYPI_USERNAME }} --password \${{ secrets.PYPI_PASSWORD }}
+" > .github/workflows/ci-cd.yml
+
+# Git add and commit the new GitHub Actions setup
+git add .github/workflows/ci-cd.yml
+git commit -m "Add GitHub Actions CI/CD workflow"
+git push
+
+# Create the GitLab CI/CD configuration
+echo "stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  IMAGE_TAG: \$CI_REGISTRY_IMAGE:\$CI_COMMIT_SHA
+
+build:
+  stage: build
+  image: docker:19.03
+  services:
+    - docker:19.03-dind
+  script:
+    - docker login -u \$CI_REGISTRY_USER -p \$CI_REGISTRY_PASSWORD \$CI_REGISTRY
+    - docker build -t \$IMAGE_TAG .
+    - docker push \$IMAGE_TAG
+
+test:
+  stage: test
+  image: \$IMAGE_TAG
+  script:
+    - echo \"Run tests here\"
+    - python -m unittest discover
+
+deploy:
+  stage: deploy
+  image: docker:19.03
+  script:
+    - docker pull \$IMAGE_TAG
+    - echo \"Deploy commands go here\"
+    - echo \"This could be a script to update a server or a service\"
+" > .gitlab-ci.yml
+
+# Git add and commit the new GitLab CI/CD setup
+git add .gitlab-ci.yml
+git commit -m "Add Flask API setup, Dockerfile update, and system service configuration"
+git push

@@ -10,8 +10,11 @@ COPY . .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Twine for uploading packages to PyPI
-RUN pip install twine
+# Make port 5000 available to the world outside this container
+EXPOSE 5000
 
-# Run tests or other necessary commands
-CMD ["python", "setup.py", "sdist bdist_wheel && twine upload dist/*"]
+# Define environment variable
+ENV NAME World
+
+# Run api.py when the container launches
+CMD ["python", "myci/api.py"]
