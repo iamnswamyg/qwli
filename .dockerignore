@@ -1,0 +1,16 @@
+# Ignore the virtual environment:
+venv/
+
+# Ignore all bytecode:
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Git directory and files:
+.git
+.gitignore
+
+# Ignore other non-essential files:
+.DS_Store
+*.log
