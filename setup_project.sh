@@ -57,12 +57,43 @@ def home():
 if __name__ == '__main__':
     app.run(debug=True)"> $REPO_NAME/cli.py
 
+# Assuming previous setup steps are preserved, add Qiskit setup below:
+echo "from qiskit import QuantumCircuit, Aer, execute
+
+def create_quantum_circuit(bits):
+    circuit = QuantumCircuit(bits, bits)
+    for i in range(bits):
+        circuit.h(i)
+    circuit.measure(range(bits), range(bits))
+    return circuit
+
+def run_simulation(circuit, shots=1024):
+    simulator = Aer.get_backend('qasm_simulator')
+    job = execute(circuit, simulator, shots=shots)
+    result = job.result()
+    return result.get_counts(circuit)" > myci/qiskit_utils.py
+
 # Create Dockerfile
-echo "FROM python:3.8-slim
+echo "# Use an official Python runtime as a parent image
+FROM python:3.8-slim
+
+# Set the working directory in the container
 WORKDIR /usr/src/app
+
+# Copy the local directory contents into the container at /usr/src/app
 COPY . .
+
+# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-CMD ['python', '$REPO_NAME/cli.py']" > Dockerfile
+
+# Make port 5000 available to the world outside this container
+EXPOSE 5000
+
+# Run api.py when the container launches
+CMD ["python", "$REPO_NAME/api.py"]
+
+
+# docker run --env-file .env myapp']" > Dockerfile
 
 # Create systemd service file for system service
 echo "[Unit]
@@ -187,5 +218,5 @@ deploy:
 
 # Git add and commit the new GitLab CI/CD setup
 git add .gitlab-ci.yml
-git commit -m "Add Flask API setup, Dockerfile update, and system service configuration"
+git commit -m "Add Qiskit integration and update Flask API"
 git push
