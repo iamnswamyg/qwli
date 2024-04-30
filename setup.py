@@ -10,7 +10,7 @@ setup(
         ],
     },
     install_requires=[
-        
+        'Click',  # Assuming you are using Click for your CLI
     ],
     python_requires='>=3.6',
 )
